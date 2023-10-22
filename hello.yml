@@ -1,6 +1,5 @@
 ---
 - hosts: all
-  #connection: local
   tasks:  
   
   - name: Who am i
