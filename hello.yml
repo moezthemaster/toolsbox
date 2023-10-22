@@ -10,4 +10,4 @@
     command: whoami
     register: result
   - debug:
-      msg: result
+      msg: result.stdout
