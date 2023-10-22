@@ -9,4 +9,5 @@
   - name: Who am i
     command: whoami
     register: result
-  - debug: result
+  - debug:
+      msg: result
