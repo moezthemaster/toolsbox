@@ -9,5 +9,4 @@
   - name: Who am i
     command: whoami
     register: result
-  - debug:
-      msg: result.stdout
+  - debug: msg="{{ result.stdout }}"
