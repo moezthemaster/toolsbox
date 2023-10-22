@@ -1,12 +1,18 @@
 ---
 - hosts: all
   #connection: local
-  tasks:
-  - name: say hello
-    debug:
-      msg: "Hello World!"
+  tasks:  
   
   - name: Who am i
     command: whoami
     register: result
+
+  - debug: msg="{{ result.stdout }}"
+  
+  - name: Update packages
+    yum:
+      name: '*'
+      state: latest
+    register: result
+
   - debug: msg="{{ result.stdout }}"
