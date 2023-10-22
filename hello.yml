@@ -14,5 +14,6 @@
       name: '*'
       state: latest
     register: result
+    become: true
 
   - debug: msg="{{ result.stdout }}"
