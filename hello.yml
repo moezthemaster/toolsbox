@@ -6,3 +6,6 @@
     debug:
       msg: "Hello World!"
   
+  - name: Who am i
+    command: whoami
+    register: result
