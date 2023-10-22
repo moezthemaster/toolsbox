@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: web
   #connection: local
   tasks:
   - name: say hello
