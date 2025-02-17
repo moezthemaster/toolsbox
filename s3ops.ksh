@@ -11,7 +11,7 @@
 #
 # Auteur: Votre Nom
 # Date de création: 2023-10-15
-# Version: 3.0
+# Version: 3.1
 #
 # Utilisation:
 #   - Avec fichier de configuration et environnement :
@@ -258,7 +258,7 @@ revoke_token() {
 main() {
     log "INFO" "Début du script."
 
-    # Lire les paramètres
+    # Lire les paramètres de la ligne de commande
     read_parameters "$@"
 
     # Charger la configuration si un fichier et un environnement sont spécifiés
