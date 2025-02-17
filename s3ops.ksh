@@ -11,7 +11,7 @@
 #
 # Auteur: Votre Nom
 # Date de création: 2023-10-15
-# Version: 3.1
+# Version: 3.3
 #
 # Utilisation:
 #   - Avec fichier de configuration et environnement :
@@ -33,10 +33,10 @@
 #   - Accès à un serveur HashiCorp Vault configuré pour l'authentification LDAP.
 #   - Les outils `curl`, `grep`, `sed`, et `awk` doivent être installés.
 #   - `openssl` pour le déchiffrement (si --decrypt est utilisé).
+#   - `jq` pour manipuler les réponses JSON.
 #
 # Remarques:
 #   - Ce script est conçu pour être simple et portable.
-#   - Pour une gestion plus avancée des JSON, envisagez d'installer `jq`.
 ##############################################################################
 
 # Variables globales
@@ -50,6 +50,7 @@ ENVIRONMENT=""
 DECRYPT_KEY=""
 DEBUG_MODE=false
 LOG_FILE="vault_ldap_script.log"
+SECRET_DATA=""  # Variable globale pour stocker les données du secret
 
 # Fonction pour afficher l'aide
 usage() {
@@ -228,14 +229,14 @@ get_secret() {
         return 1
     fi
 
-    secret_data=$(echo "$response" | grep -o '"data":\{[^}]+\}')
-    if [ -z "$secret_data" ]; then
+    # Utiliser jq pour extraire les données JSON
+    SECRET_DATA=$(echo "$response" | jq -r '.data')
+    if [ -z "$SECRET_DATA" ] || [ "$SECRET_DATA" = "null" ]; then
         log "ERROR" "Erreur: Données du secret non trouvées dans la réponse."
         return 1
     fi
 
-    log "INFO" "Secret récupéré avec succès:"
-    echo "$secret_data"
+    log "INFO" "Secret récupéré avec succès."
 }
 
 # Fonction pour révoquer le token
@@ -251,45 +252,4 @@ revoke_token() {
         return 1
     fi
 
-    log "INFO" "Token révoqué avec succès."
-}
-
-# Fonction principale
-main() {
-    log "INFO" "Début du script."
-
-    # Lire les paramètres de la ligne de commande
-    read_parameters "$@"
-
-    # Charger la configuration si un fichier et un environnement sont spécifiés
-    if [ -n "$CONFIG_FILE" ] && [ -n "$ENVIRONMENT" ]; then
-        load_config "$CONFIG_FILE" "$ENVIRONMENT" || { log "ERROR" "Échec du chargement de la configuration. Arrêt du script."; exit 1; }
-    fi
-
-    # Valider les paramètres
-    validate_parameters
-
-    # Déchiffrer le mot de passe si nécessaire
-    if [[ "$LDAP_PASSWORD" == enc:* ]]; then
-        log "INFO" "Déchiffrement du mot de passe chiffré..."
-        get_decrypt_key "$DECRYPT_KEY"  # Lire la clé de déchiffrement
-        LDAP_PASSWORD=$(decrypt_password "$LDAP_PASSWORD") || { log "ERROR" "Échec du déchiffrement. Arrêt du script."; exit 1; }
-    fi
-
-    # Authentification
-    authenticate "$LDAP_USER" "$LDAP_PASSWORD" || { log "ERROR" "Échec de l'authentification. Arrêt du script."; exit 1; }
-
-    # Récupérer le secret
-    secret=$(get_secret "$SECRET_PATH") || { revoke_token "$VAULT_TOKEN"; log "ERROR" "Échec de la récupération du secret. Arrêt du script."; exit 1; }
-
-    # Afficher le secret
-    echo "$secret"
-
-    # Révoquer le token
-    revoke_token "$VAULT_TOKEN" || { log "ERROR" "Erreur lors de la révocation du token."; exit 1; }
-
-    log "INFO" "Script terminé avec succès."
-}
-
-# Point d'entrée du script
-main "$@"
+    log "
