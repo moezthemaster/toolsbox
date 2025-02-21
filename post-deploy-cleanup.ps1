@@ -1,65 +1,65 @@
 <#
 .SYNOPSIS
-    Script de nettoyage pour supprimer des fichiers et répertoires spécifiques après l'installation d'un composant.
+    Post-deployment cleanup script to remove specific files and directories.
 
 .DESCRIPTION
-    Ce script permet de nettoyer un système en supprimant des fichiers et répertoires listés dans un fichier de configuration.
-    Il prend en charge plusieurs composants (Python, R, Java, etc.) et permet d'exclure des fichiers ou répertoires spécifiques.
-    Le script peut fonctionner en mode simulation (dry-run) pour afficher les actions sans les exécuter.
+    This script cleans up a system by deleting files and directories listed in a configuration file.
+    It supports multiple components (Python, R, Java, etc.) and allows excluding specific files or directories.
+    The script can run in dry-run mode to display actions without executing them.
 
-.PARAMETER composant
-    Le composant à nettoyer (par exemple, "python", "R", "java"). Par défaut, "python".
+.PARAMETER component
+    The component to clean up (e.g., "python", "R", "java"). Default is "python".
 
 .PARAMETER configPath
-    Le chemin du fichier de configuration contenant les listes de suppression et d'exclusion. Par défaut, "C:\Chemin\Vers\blacklist.config".
+    The path to the configuration file containing the deletion and exclusion lists. Default is "post-deploy-cleanup.config".
 
 .PARAMETER logPath
-    Le chemin du fichier de log pour enregistrer les actions du script. Par défaut, "C:\Chemin\Vers\cleanup_log.txt".
+    The path to the log file to record script actions. Default is "post-deploy-cleanup.log".
 
 .PARAMETER DryRun
-    Active le mode simulation. Aucune suppression ne sera effectuée, mais les actions seront affichées.
+    Enables dry-run mode. No deletions will be performed, but actions will be displayed.
 
 .PARAMETER Help
-    Affiche l'aide et les informations d'utilisation du script.
+    Displays help and usage information for the script.
 
 .EXAMPLE
-    .\cleanup.ps1 -composant python
-    Nettoie les fichiers et répertoires spécifiés pour le composant Python.
+    .\post-deploy-cleanup.ps1 -component python
+    Cleans up files and directories specified for the Python component.
 
 .EXAMPLE
-    .\cleanup.ps1 -composant R -DryRun
-    Affiche les actions de nettoyage pour le composant R sans les exécuter.
+    .\post-deploy-cleanup.ps1 -component R -DryRun
+    Displays cleanup actions for the R component without executing them.
 
 .EXAMPLE
-    .\cleanup.ps1 -composant java -configPath "C:\Chemin\Vers\autre_config.config" -logPath "C:\Chemin\Vers\autre_log.txt"
-    Nettoie les fichiers et répertoires spécifiés pour le composant Java en utilisant un fichier de configuration et un fichier de log personnalisés.
+    .\post-deploy-cleanup.ps1 -component java -configPath "C:\Path\To\custom.config" -logPath "C:\Path\To\custom.log"
+    Cleans up files and directories specified for the Java component using a custom configuration and log file.
 
 .EXAMPLE
-    .\cleanup.ps1 -Help
-    Affiche l'aide et les informations d'utilisation du script.
+    .\post-deploy-cleanup.ps1 -Help
+    Displays help and usage information for the script.
 
 .NOTES
-    Auteur : Votre Nom
-    Version : 1.2
-    Date de création : 2023-10-10
-    Dernière modification : 2023-10-10
+    Author: Your Name
+    Version: 1.2
+    Created: 2023-10-10
+    Last Modified: 2023-10-10
 #>
 
 param (
-    [string]$composant = "python",  # Composant à nettoyer
-    [string]$configPath = "C:\Chemin\Vers\blacklist.config",  # Chemin du fichier de configuration
-    [string]$logPath = "C:\Chemin\Vers\cleanup_log.txt",  # Chemin du fichier de log
-    [switch]$DryRun = $false,  # Mode simulation
-    [switch]$Help = $false  # Afficher l'aide
+    [string]$component = "python",  # Component to clean up
+    [string]$configPath = "post-deploy-cleanup.config",  # Path to the configuration file
+    [string]$logPath = "post-deploy-cleanup.log",  # Path to the log file
+    [switch]$DryRun = $false,  # Dry-run mode
+    [switch]$Help = $false  # Display help
 )
 
-# Afficher l'aide
+# Display help
 if ($Help) {
     Get-Help $PSCommandPath -Full
     exit
 }
 
-# Fonction pour écrire dans le log
+# Function to write to the log
 function Write-Log {
     param (
         [string]$Message,
@@ -77,27 +77,27 @@ function Write-Log {
             Write-Host $logEntry
         }
     } catch {
-        Write-Host "Erreur lors de l'écriture dans le fichier de log : $_" -ForegroundColor Red
+        Write-Host "Error writing to log file: $_" -ForegroundColor Red
     }
 }
 
-# Fonction pour valider les chemins dans le fichier de configuration
+# Function to validate paths in the configuration file
 function Test-ValidPath {
     param (
         [string]$Path
     )
     if ([string]::IsNullOrWhiteSpace($Path)) {
-        Write-Log -Message "Chemin vide ou invalide : $Path" -Level "ERROR"
+        Write-Log -Message "Empty or invalid path: $Path" -Level "ERROR"
         return $false
     }
     if (-not (Test-Path -Path $Path)) {
-        Write-Log -Message "Chemin introuvable : $Path" -Level "ERROR"
+        Write-Log -Message "Path not found: $Path" -Level "ERROR"
         return $false
     }
     return $true
 }
 
-# Fonction pour vérifier les conflits entre fichiers et répertoires
+# Function to check for conflicts between files and directories
 function Test-PathConflict {
     param (
         [string]$Path
@@ -105,13 +105,13 @@ function Test-PathConflict {
     $isFile = Test-Path -Path $Path -PathType Leaf
     $isDirectory = Test-Path -Path $Path -PathType Container
     if ($isFile -and $isDirectory) {
-        Write-Log -Message "Conflit détecté : $Path correspond à la fois à un fichier et à un répertoire." -Level "ERROR"
+        Write-Log -Message "Conflict detected: $Path corresponds to both a file and a directory." -Level "ERROR"
         return $true
     }
     return $false
 }
 
-# Fonction pour convertir les chemins relatifs en chemins absolus
+# Function to convert relative paths to absolute paths
 function Get-AbsolutePath {
     param (
         [string]$Path,
@@ -124,18 +124,18 @@ function Get-AbsolutePath {
     }
 }
 
-# Fonction pour vérifier si un chemin est exclu
+# Function to check if a path is excluded
 function Is-Excluded {
     param (
         [string]$Path
     )
-    # Vérifier les exclusions simples
+    # Check simple exclusions
     foreach ($excludeFile in $excludeFiles) {
         if ($Path -like "*$excludeFile*") {
             return $true
         }
     }
-    # Vérifier les exclusions regex
+    # Check regex exclusions
     foreach ($regex in $regexExclude) {
         if ($Path -match $regex) {
             return $true
@@ -144,48 +144,48 @@ function Is-Excluded {
     return $false
 }
 
-# Vérifier si le fichier de configuration existe
+# Check if the configuration file exists
 if (-not (Test-Path -Path $configPath)) {
-    Write-Log -Message "Le fichier de configuration n'existe pas : $configPath" -Level "ERROR"
+    Write-Log -Message "Configuration file not found: $configPath" -Level "ERROR"
     exit
 }
 
-# Lire le fichier de configuration
+# Read the configuration file
 try {
     $config = Get-Content -Path $configPath -ErrorAction Stop
 } catch {
-    Write-Log -Message "Erreur lors de la lecture du fichier de configuration : $_" -Level "ERROR"
+    Write-Log -Message "Error reading configuration file: $_" -Level "ERROR"
     exit
 }
 
-# Vérifier si le composant existe dans le fichier de configuration
-if (-not ($config -match "\[$composant\]")) {
-    Write-Log -Message "Le composant '$composant' n'existe pas dans le fichier de configuration." -Level "ERROR"
+# Check if the component exists in the configuration file
+if (-not ($config -match "\[$component\]")) {
+    Write-Log -Message "Component '$component' not found in the configuration file." -Level "ERROR"
     exit
 }
 
-# Initialiser les listes
+# Initialize lists
 $deleteFiles = @()
 $deleteDirectories = @()
 $excludeFiles = @()
 $excludeDirectories = @()
 $regexExclude = @()
 
-# Parser le fichier de configuration
+# Parse the configuration file
 $section = ""
 foreach ($line in $config) {
     if ($line -match "^\[(.+)\]$") {
         $section = $matches[1]
     } elseif ($line -match "^file=(.+)$") {
-        if ($section -eq $composant) {
+        if ($section -eq $component) {
             $deleteFiles += $matches[1]
-        } elseif ($section -eq "$composant-exclude" -or $section -eq "global-exclude") {
+        } elseif ($section -eq "$component-exclude" -or $section -eq "global-exclude") {
             $excludeFiles += $matches[1]
         }
     } elseif ($line -match "^directory=(.+)$") {
-        if ($section -eq $composant) {
+        if ($section -eq $component) {
             $deleteDirectories += $matches[1]
-        } elseif ($section -eq "$composant-exclude" -or $section -eq "global-exclude") {
+        } elseif ($section -eq "$component-exclude" -or $section -eq "global-exclude") {
             $excludeDirectories += $matches[1]
         }
     } elseif ($line -match "^regex-exclude=(.+)$") {
@@ -193,12 +193,12 @@ foreach ($line in $config) {
     }
 }
 
-# Mode simulation
+# Dry-run mode
 if ($DryRun) {
-    Write-Log -Message "Mode simulation activé. Aucune suppression ne sera effectuée." -Level "INFO"
+    Write-Log -Message "Dry-run mode enabled. No deletions will be performed." -Level "INFO"
 }
 
-# Supprimer les fichiers listés
+# Delete listed files
 foreach ($file in $deleteFiles) {
     $absolutePath = Get-AbsolutePath -Path $file)
     if (Test-ValidPath -Path $absolutePath) -and -not (Test-PathConflict -Path $absolutePath)) {
@@ -207,49 +207,49 @@ foreach ($file in $deleteFiles) {
                 if (-not $DryRun) {
                     Remove-Item -Path $absolutePath -Force -ErrorAction Stop
                 }
-                Write-Log -Message "Fichier supprimé : $absolutePath" -Level "INFO"
+                Write-Log -Message "File deleted: $absolutePath" -Level "INFO"
             } catch {
-                Write-Log -Message "Erreur lors de la suppression de $absolutePath : $_" -Level "ERROR"
+                Write-Log -Message "Error deleting file $absolutePath: $_" -Level "ERROR"
             }
         } else {
-            Write-Log -Message "Fichier exclu : $absolutePath" -Level "WARNING"
+            Write-Log -Message "File excluded: $absolutePath" -Level "WARNING"
         }
     } else {
-        Write-Log -Message "Fichier introuvable ou conflit : $absolutePath" -Level "ERROR"
+        Write-Log -Message "File not found or conflict: $absolutePath" -Level "ERROR"
     }
 }
 
-# Supprimer les répertoires listés
+# Delete listed directories
 foreach ($directory in $deleteDirectories) {
     $absolutePath = Get-AbsolutePath -Path $directory)
     if (Test-ValidPath -Path $absolutePath) -and -not (Test-PathConflict -Path $absolutePath)) {
-        # Parcourir récursivement le répertoire
+        # Recursively process the directory
         Get-ChildItem -Path $absolutePath -Recurse | ForEach-Object {
             if (-not (Is-Excluded -Path $_.FullName)) {
                 try {
                     if (-not $DryRun) {
                         Remove-Item -Path $_.FullName -Force -Recurse -ErrorAction Stop
                     }
-                    Write-Log -Message "Élément supprimé : $($_.FullName)" -Level "INFO"
+                    Write-Log -Message "Item deleted: $($_.FullName)" -Level "INFO"
                 } catch {
-                    Write-Log -Message "Erreur lors de la suppression de $($_.FullName) : $_" -Level "ERROR"
+                    Write-Log -Message "Error deleting item $($_.FullName): $_" -Level "ERROR"
                 }
             } else {
-                Write-Log -Message "Élément exclu : $($_.FullName)" -Level "WARNING"
+                Write-Log -Message "Item excluded: $($_.FullName)" -Level "WARNING"
             }
         }
-        # Supprimer le répertoire principal s'il est vide
+        # Delete the main directory if it is empty
         if (-not $DryRun -and -not (Get-ChildItem -Path $absolutePath)) {
             try {
                 Remove-Item -Path $absolutePath -Force -ErrorAction Stop
-                Write-Log -Message "Répertoire supprimé : $absolutePath" -Level "INFO"
+                Write-Log -Message "Directory deleted: $absolutePath" -Level "INFO"
             } catch {
-                Write-Log -Message "Erreur lors de la suppression du répertoire $absolutePath : $_" -Level "ERROR"
+                Write-Log -Message "Error deleting directory $absolutePath: $_" -Level "ERROR"
             }
         }
     } else {
-        Write-Log -Message "Répertoire introuvable ou conflit : $absolutePath" -Level "ERROR"
+        Write-Log -Message "Directory not found or conflict: $absolutePath" -Level "ERROR"
     }
 }
 
-Write-Log -Message "Nettoyage terminé pour le composant : $composant" -Level "INFO"
+Write-Log -Message "Cleanup completed for component: $component" -Level "INFO"
