@@ -40,7 +40,7 @@
 
 .NOTES
     Author: Your Name
-    Version: 1.3
+    Version: 1.4
     Created: 2023-10-10
     Last Modified: 2023-10-10
 #>
@@ -184,13 +184,13 @@ foreach ($line in $config) {
     } elseif ($line -match "^file=(.+)$") {
         if ($section -eq $component) {
             $deleteFiles += $matches[1]
-        } elseif ($section -eq "$component-exclude" -or $section -eq "global-exclude") {
+        } elseif ($section -eq "exclude" -or $section -eq "global-exclude") {
             $excludeFiles += $matches[1]
         }
     } elseif ($line -match "^directory=(.+)$") {
         if ($section -eq $component) {
             $deleteDirectories += $matches[1]
-        } elseif ($section -eq "$component-exclude" -or $section -eq "global-exclude") {
+        } elseif ($section -eq "exclude" -or $section -eq "global-exclude") {
             $excludeDirectories += $matches[1]
         }
     } elseif ($line -match "^regex-exclude=(.+)$") {
