@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     This script cleans up a system by deleting files and directories listed in a configuration file.
-    It supports multiple components (Python, R, Java, etc.) and allows excluding specific files or directories.
+    It supports multiple components (Python, R, Java, etc.) and allows excluding specific files or directories using regex.
     The script can run in dry-run mode to display actions without executing them.
 
 .PARAMETER component
@@ -40,7 +40,7 @@
 
 .NOTES
     Author: Your Name
-    Version: 1.4
+    Version: 1.5
     Created: 2023-10-10
     Last Modified: 2023-10-10
 #>
@@ -129,12 +129,6 @@ function Is-Excluded {
     param (
         [string]$Path
     )
-    # Check simple exclusions
-    foreach ($excludeFile in $excludeFiles) {
-        if ($Path -like "*$excludeFile*") {
-            return $true
-        }
-    }
     # Check regex exclusions
     foreach ($regex in $regexExclude) {
         if ($Path -match $regex) {
@@ -167,8 +161,6 @@ if (-not ($config -match "\[$component\]")) {
 # Initialize lists
 $deleteFiles = @()
 $deleteDirectories = @()
-$excludeFiles = @()
-$excludeDirectories = @()
 $regexExclude = @()
 
 # Parse the configuration file
@@ -184,14 +176,10 @@ foreach ($line in $config) {
     } elseif ($line -match "^file=(.+)$") {
         if ($section -eq $component) {
             $deleteFiles += $matches[1]
-        } elseif ($section -eq "exclude" -or $section -eq "global-exclude") {
-            $excludeFiles += $matches[1]
         }
     } elseif ($line -match "^directory=(.+)$") {
         if ($section -eq $component) {
             $deleteDirectories += $matches[1]
-        } elseif ($section -eq "exclude" -or $section -eq "global-exclude") {
-            $excludeDirectories += $matches[1]
         }
     } elseif ($line -match "^regex-exclude=(.+)$") {
         $regexExclude += [regex]$matches[1]
