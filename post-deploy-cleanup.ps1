@@ -40,7 +40,7 @@
 
 .NOTES
     Author: Your Name
-    Version: 1.2
+    Version: 1.3
     Created: 2023-10-10
     Last Modified: 2023-10-10
 #>
@@ -174,6 +174,11 @@ $regexExclude = @()
 # Parse the configuration file
 $section = ""
 foreach ($line in $config) {
+    # Ignore empty lines and comments (starting with #)
+    if ([string]::IsNullOrWhiteSpace($line) -or $line.Trim().StartsWith("#")) {
+        continue
+    }
+
     if ($line -match "^\[(.+)\]$") {
         $section = $matches[1]
     } elseif ($line -match "^file=(.+)$") {
