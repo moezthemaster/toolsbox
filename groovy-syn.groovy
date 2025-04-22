@@ -9,20 +9,11 @@ properties([
 ])
 
 node {
-    stage('Initialisation') {
-        echo "Job sélectionné via paramètre : ${params.SELECTED_JOB}"
-        
-        // Vérification que c'est bien job_2 (comme dans votre exemple)
-        if (params.SELECTED_JOB != 'job_2') {
-            error "Ce pipeline est configuré uniquement pour job_2"
-        }
-    }
-    
-    stage('Paramétrage') {
-        // Premier input - Description et composant
-        def firstInput = input(
-            id: 'BuildParams',
-            message: 'Paramètres de construction pour job_2',
+    stage('Paramétrage complet') {
+        // Tous les paramètres en un seul input
+        def allParams = input(
+            id: 'AllParameters',
+            message: 'Paramètres complets pour le job',
             parameters: [
                 text(
                     name: 'DESCRIPTION',
@@ -38,93 +29,64 @@ node {
                     name: 'PACKAGE_TYPE',
                     choices: ['snapshot', 'release'],
                     description: 'Type de package'
-                )
-            ]
-        )
-        
-        // Initialisation des variables
-        def versionInput = ''
-        def deployInput = false
-        def envInput = ''
-        
-        // Deuxième input conditionnel - Version si release
-        if (firstInput.PACKAGE_TYPE == 'release') {
-            versionInput = input(
-                id: 'VersionInput',
-                message: 'Paramètre de version (release seulement)',
-                parameters: [
-                    string(
-                        name: 'VERSION',
-                        defaultValue: '1.0.0',
-                        description: 'Numéro de version (format X.Y.Z)'
-                    )
-                ]
-            ).VERSION
-        }
-        
-        // Troisième input - Déploiement
-        deployInput = input(
-            id: 'DeployQuestion',
-            message: 'Paramètres de déploiement',
-            parameters: [
+                ),
+                string(
+                    name: 'VERSION',
+                    defaultValue: '1.0.0',
+                    description: 'Numéro de version (requis même pour snapshot)'
+                ),
                 booleanParam(
                     name: 'DEPLOY',
                     defaultValue: false,
                     description: 'Déployer le package ?'
+                ),
+                extendedChoice(
+                    name: 'ENVIRONMENTS',
+                    type: 'CHECK_BOX', 
+                    description: 'Environnements cibles',
+                    multiSelectDelimiter: ',',
+                    value: 'dev,int,prod',
+                    visibleItemCount: 3,
+                    quoteValue: false
                 )
             ]
-        ).DEPLOY
+        )
         
-        // Quatrième input conditionnel - Environnement si déploiement
-        if (deployInput) {
-            envInput = input(
-                id: 'EnvSelection',
-                message: 'Sélection environnement de déploiement',
-                parameters: [
-                    choice(
-                        name: 'ENVIRONMENT',
-                        choices: ['dev', 'int', 'prod'],
-                        description: 'Environnement cible'
-                    )
-                ]
-            ).ENVIRONMENT
-        }
+        // Conversion des environnements en liste
+        def envList = allParams.ENVIRONMENTS.split(',') as List
         
         // Affichage récapitulatif
         echo """
         ========== RÉCAPITULATIF ==========
         Job sélectionné: ${params.SELECTED_JOB}
-        Description: ${firstInput.DESCRIPTION}
-        Composant: ${firstInput.COMPONENT}
-        Type de package: ${firstInput.PACKAGE_TYPE}
-        ${firstInput.PACKAGE_TYPE == 'release' ? "Version: ${versionInput}" : ""}
-        Déploiement: ${deployInput ? "Oui (${envInput})" : "Non"}
+        Description: ${allParams.DESCRIPTION}
+        Composant: ${allParams.COMPONENT}
+        Type de package: ${allParams.PACKAGE_TYPE}
+        Version: ${allParams.VERSION}
+        Déploiement: ${allParams.DEPLOY ? 'Oui' : 'Non'}
+        Environnements: ${envList.join(', ')}
         ==================================
         """
         
-        // Stockage des valeurs pour les étapes suivantes
-        env.DESCRIPTION = firstInput.DESCRIPTION
-        env.COMPONENT = firstInput.COMPONENT
-        env.PACKAGE_TYPE = firstInput.PACKAGE_TYPE
-        if (firstInput.PACKAGE_TYPE == 'release') {
-            env.VERSION = versionInput
-        }
-        if (deployInput) {
-            env.DEPLOY_ENV = envInput
-        }
+        // Stockage dans les variables d'environnement
+        env.DESCRIPTION = allParams.DESCRIPTION
+        env.COMPONENT = allParams.COMPONENT
+        env.PACKAGE_TYPE = allParams.PACKAGE_TYPE
+        env.VERSION = allParams.VERSION
+        env.DEPLOY = allParams.DEPLOY.toString()
+        env.ENVIRONMENTS = allParams.ENVIRONMENTS
     }
     
     stage('Exécution') {
-        // Exemple d'utilisation des paramètres
-        echo "Construction du composant ${env.COMPONENT} en mode ${env.PACKAGE_TYPE}"
+        echo "Construction du composant ${env.COMPONENT}"
+        echo "Type de package: ${env.PACKAGE_TYPE}"
+        echo "Version: ${env.VERSION}"
         
-        if (env.PACKAGE_TYPE == 'release') {
-            echo "Génération de la version ${env.VERSION}"
-        }
-        
-        if (params.DEPLOY == 'true') {
-            echo "Déploiement sur l'environnement ${env.DEPLOY_ENV}"
-            // Ajouter ici la logique de déploiement
+        if (env.DEPLOY.toBoolean()) {
+            env.ENVIRONMENTS.split(',').each { envName ->
+                echo "Déploiement sur ${envName}"
+                // Ajoutez ici la logique de déploiement
+            }
         }
     }
 }
